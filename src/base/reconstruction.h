@@ -59,16 +59,21 @@ class SimilarityTransform3;
 // model. It is used by the mapping and bundle adjustment classes and can be
 // written to and read from disk.
 class Reconstruction {
+    ///@brief 一个reconstruction类拥有单个模型的所有信息
  public:
   struct ImagePairStat {
+      ///@brief 一个图相对的统计信息
+      /// 两帧之间三角化点的个数。
     // The number of triangulated correspondences between two images.
     size_t num_tri_corrs = 0;
+    /// 两帧之间所有的匹配个数
     // The number of total correspondences/matches between two images.
     size_t num_total_corrs = 0;
   };
 
   Reconstruction();
 
+  ///@todo 获得所有对象的数量：相机个数，图像个数，对齐的图像个数，三维点个数，图像配对个数
   // Get number of objects.
   inline size_t NumCameras() const;
   inline size_t NumImages() const;
@@ -76,7 +81,9 @@ class Reconstruction {
   inline size_t NumPoints3D() const;
   inline size_t NumImagePairs() const;
 
+
   // Get const objects.
+    /// 获得常量对象
   inline const class Camera& Camera(const camera_t camera_id) const;
   inline const class Image& Image(const image_t image_id) const;
   inline const class Point3D& Point3D(const point3D_t point3D_id) const;
@@ -84,6 +91,7 @@ class Reconstruction {
   inline ImagePairStat& ImagePair(const image_t image_id1,
                                   const image_t image_id2);
 
+  /// 获得可变对象。
   // Get mutable objects.
   inline class Camera& Camera(const camera_t camera_id);
   inline class Image& Image(const image_t image_id);
@@ -92,6 +100,7 @@ class Reconstruction {
   inline const ImagePairStat& ImagePair(const image_t image_id1,
                                         const image_t image_id2) const;
 
+  /// 获得所有对象的引用
   // Get reference to all objects.
   inline const EIGEN_STL_UMAP(camera_t, class Camera) & Cameras() const;
   inline const EIGEN_STL_UMAP(image_t, class Image) & Images() const;
@@ -100,15 +109,18 @@ class Reconstruction {
   inline const std::unordered_map<image_pair_t, ImagePairStat>& ImagePairs()
       const;
 
+  /// 获得所有三维点的标志。
   // Identifiers of all 3D points.
   std::unordered_set<point3D_t> Point3DIds() const;
 
+  /// 检查该对象是否存在
   // Check whether specific object exists.
   inline bool ExistsCamera(const camera_t camera_id) const;
   inline bool ExistsImage(const image_t image_id) const;
   inline bool ExistsPoint3D(const point3D_t point3D_id) const;
   inline bool ExistsImagePair(const image_pair_t pair_id) const;
 
+  /// 从数据库缓存中加载数据。
   // Load data from given `DatabaseCache`.
   void Load(const DatabaseCache& database_cache);
 
@@ -124,47 +136,61 @@ class Reconstruction {
   // save memory.
   void TearDown();
 
+  /// 增加camera. 一个图像对应一个相机，但是一个相机对应多个图像。
   // Add new camera. There is only one camera per image, while multiple images
   // might be taken by the same camera.
   void AddCamera(const class Camera& camera);
 
+  /// 增加新图像。
   // Add new image.
   void AddImage(const class Image& image);
 
+  /// 增加三维对象，返回ＩＤ
   // Add new 3D object, and return its unique ID.
   point3D_t AddPoint3D(
       const Eigen::Vector3d& xyz, const Track& track,
       const Eigen::Vector3ub& color = Eigen::Vector3ub::Zero());
 
+  /// 增加一个观测，一个三维点，被多次观测到，这多次的观测，叫做一个track.
   // Add observation to existing 3D point.
   void AddObservation(const point3D_t point3D_id, const TrackElement& track_el);
 
+  /// 合并两个三维点（经过判断他们属于同一个点）
   // Merge two 3D points and return new identifier of new 3D point.
   // The location of the merged 3D point is a weighted average of the two
   // original 3D point's locations according to their track lengths.
   point3D_t MergePoints3D(const point3D_t point3D_id1,
                           const point3D_t point3D_id2);
 
+  /// 删除一个三维点。
   // Delete a 3D point, and all its references in the observed images.
   void DeletePoint3D(const point3D_t point3D_id);
 
+  /// 删除一个观测
   // Delete one observation from an image and the corresponding 3D point.
   // Note that this deletes the entire 3D point, if the track has two elements
   // prior to calling this method.
   void DeleteObservation(const image_t image_id, const point2D_t point2D_idx);
 
+  /// 删除所有图像的２ｄ点已经对应的三维点。
   // Delete all 2D points of all images and all 3D points.
   void DeleteAllPoints2DAndPoints3D();
 
+  /// 注册一个已经有的图像。
   // Register an existing image.
   void RegisterImage(const image_t image_id);
 
+  /// 反注册一个图像。
   // De-register an existing image, and all its references.
   void DeRegisterImage(const image_t image_id);
 
+  /// 检查该图像是否被注册了。
   // Check if image is registered.
   inline bool IsImageRegistered(const image_t image_id) const;
 
+  /// 通过平移与缩放，对重建的场景进行标准化。
+  /// 平移：让原点处于重建对象的中心
+  /// 缩放：最小的相机中心与最大的处于合适位置。
   // Normalize scene by scaling and translation to avoid degenerate
   // visualization after bundle adjustment and to improve numerical
   // stability of algorithms.
@@ -178,6 +204,7 @@ class Reconstruction {
   void Normalize(const double extent = 10.0, const double p0 = 0.1,
                  const double p1 = 0.9, const bool use_images = true);
 
+  /// 应用三维相似变换。
   // Apply the 3D similarity transformation to all images and points.
   void Transform(const SimilarityTransform3& tform);
 

@@ -145,6 +145,7 @@ class IncrementalMapper {
   // life-time of the incremental mapper.
   explicit IncrementalMapper(const DatabaseCache* database_cache);
 
+  /// 开始重建
   // Prepare the mapper for a new reconstruction, which might have existing
   // registered images (in which case `RegisterNextImage` must be called) or
   // which is empty (in which case `RegisterInitialImagePair` must be called).
@@ -260,6 +261,7 @@ class IncrementalMapper {
                                       const image_t image_id1,
                                       const image_t image_id2);
 
+  ///
   // Class that holds all necessary data from database in memory.
   const DatabaseCache* database_cache_;
 

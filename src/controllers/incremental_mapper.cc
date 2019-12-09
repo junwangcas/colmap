@@ -311,11 +311,14 @@ IncrementalMapperController::IncrementalMapperController(
 }
 
 void IncrementalMapperController::Run() {
+  /// @brief 这里是入口
   if (!LoadDatabase()) {
     return;
   }
 
+  /// 获取参数；
   IncrementalMapper::Options init_mapper_options = options_->Mapper();
+  /// 调用重建
   Reconstruct(init_mapper_options);
 
   const size_t kNumInitRelaxations = 2;
@@ -324,6 +327,7 @@ void IncrementalMapperController::Run() {
       break;
     }
 
+    ///@todo 松弛初始化约束, 最小内点数/2;
     std::cout << "  => Relaxing the initialization constraints." << std::endl;
     init_mapper_options.init_min_num_inliers /= 2;
     Reconstruct(init_mapper_options);
@@ -332,6 +336,7 @@ void IncrementalMapperController::Run() {
       break;
     }
 
+    ///@todo 松弛初始化约束，最小化三角化角度。
     std::cout << "  => Relaxing the initialization constraints." << std::endl;
     init_mapper_options.init_min_tri_angle /= 2;
     Reconstruct(init_mapper_options);
@@ -379,12 +384,12 @@ bool IncrementalMapperController::LoadDatabase() {
 
 void IncrementalMapperController::Reconstruct(
     const IncrementalMapper::Options& init_mapper_options) {
+  /// @brief 重建的主要函数
   const bool kDiscardReconstruction = true;
 
   //////////////////////////////////////////////////////////////////////////////
-  // Main loop
+  /// 声明一个incremental的制图对象
   //////////////////////////////////////////////////////////////////////////////
-
   IncrementalMapper mapper(&database_cache_);
 
   // Is there a sub-model before we start the reconstruction? I.e. the user
