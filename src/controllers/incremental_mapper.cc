@@ -342,6 +342,7 @@ void IncrementalMapperController::Run() {
 }
 
 bool IncrementalMapperController::LoadDatabase() {
+  /// @brief 加载数据库
   PrintHeading1("Loading database");
 
   // Make sure images of the given reconstruction are also included when
