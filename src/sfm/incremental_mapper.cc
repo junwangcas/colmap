@@ -105,18 +105,24 @@ IncrementalMapper::IncrementalMapper(const DatabaseCache* database_cache)
       prev_init_image_pair_id_(kInvalidImagePairId) {}
 
 void IncrementalMapper::BeginReconstruction(Reconstruction* reconstruction) {
-  CHECK(reconstruction_ == nullptr);
+  /// @brief 开始重建
+    CHECK(reconstruction_ == nullptr);
   reconstruction_ = reconstruction;
+  /// 加载数据库
   reconstruction_->Load(*database_cache_);
+  /// 加载相关graph
   reconstruction_->SetUp(&database_cache_->CorrespondenceGraph());
+  /// 重置三角化
   triangulator_.reset(new IncrementalTriangulator(
       &database_cache_->CorrespondenceGraph(), reconstruction));
-
+  /// 匹配上的图像个数
   num_shared_reg_images_ = 0;
+  /// 对每一个图像进行注册；
   for (const image_t image_id : reconstruction_->RegImageIds()) {
     RegisterImageEvent(image_id);
   }
 
+  /// 已有图像的ｉｄ
   existing_image_ids_ =
       std::unordered_set<image_t>(reconstruction->RegImageIds().begin(),
                                   reconstruction->RegImageIds().end());
@@ -565,14 +571,20 @@ IncrementalMapper::AdjustLocalBundle(
     const Options& options, const BundleAdjustmentOptions& ba_options,
     const IncrementalTriangulator::Options& tri_options, const image_t image_id,
     const std::unordered_set<point3D_t>& point3D_ids) {
+    ///@param image_id 给定当前的一幅图像；
+    ///@param point3D_ids
+    ///@todo
+    ///局部光束法平差
   CHECK_NOTNULL(reconstruction_);
   CHECK(options.Check());
 
   LocalBundleAdjustmentReport report;
 
+  /// 找出与当前图像有共同三维点的图像；
   // Find images that have most 3D points with given image in common.
   const std::vector<image_t> local_bundle = FindLocalBundle(options, image_id);
 
+  /// 只有在查找的图像有共同点的时候，才进行光束法平差
   // Do the bundle adjustment only if there is any connected images.
   if (local_bundle.size() > 0) {
     BundleAdjustmentConfig ba_config;
@@ -643,6 +655,7 @@ IncrementalMapper::AdjustLocalBundle(
   // there are no outlier points in the model. This results in duplicate work as
   // many of the provided 3D points may also be contained in the adjusted
   // images, but the filtering is not a bottleneck at this point.
+    ///对参与优化的图像进行遍历，检查其反投影误差，最小三角化角度误差，过滤掉误差较大的。
   std::unordered_set<image_t> filter_image_ids;
   filter_image_ids.insert(image_id);
   filter_image_ids.insert(local_bundle.begin(), local_bundle.end());
@@ -1100,8 +1113,10 @@ std::vector<image_t> IncrementalMapper::FindLocalBundle(
 }
 
 void IncrementalMapper::RegisterImageEvent(const image_t image_id) {
+    /// 注册图像；
   size_t& num_regs_for_image = num_registrations_[image_id];
   num_regs_for_image += 1;
+    /// 之前没有注册过；如果注册过，那么这幅图像就属于共享的图像了。
   if (num_regs_for_image == 1) {
     num_total_reg_images_ += 1;
   } else if (num_regs_for_image > 1) {

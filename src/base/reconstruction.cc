@@ -671,8 +671,10 @@ size_t Reconstruction::FilterPoints3D(
     const double max_reproj_error, const double min_tri_angle,
     const std::unordered_set<point3D_t>& point3D_ids) {
   size_t num_filtered = 0;
+  /// 过滤残差较大的三维点；
   num_filtered +=
       FilterPoints3DWithLargeReprojectionError(max_reproj_error, point3D_ids);
+  /// 过滤视差角较小的三维点；
   num_filtered +=
       FilterPoints3DWithSmallTriangulationAngle(min_tri_angle, point3D_ids);
   return num_filtered;
@@ -682,8 +684,10 @@ size_t Reconstruction::FilterPoints3DInImages(
     const double max_reproj_error, const double min_tri_angle,
     const std::unordered_set<image_t>& image_ids) {
   std::unordered_set<point3D_t> point3D_ids;
+  /// 遍历所有的图像；
   for (const image_t image_id : image_ids) {
     const class Image& image = Image(image_id);
+    /// 遍历所有的点
     for (const Point2D& point2D : image.Points2D()) {
       if (point2D.HasPoint3D()) {
         point3D_ids.insert(point2D.Point3DId());
@@ -1343,6 +1347,7 @@ size_t Reconstruction::FilterPoints3DWithLargeReprojectionError(
     class Point3D& point3D = Point3D(point3D_id);
 
     if (point3D.Track().Length() < 2) {
+      /// 如果某一点对应的track小于２，直接删除
       DeletePoint3D(point3D_id);
       num_filtered += point3D.Track().Length();
       continue;
@@ -1353,9 +1358,11 @@ size_t Reconstruction::FilterPoints3DWithLargeReprojectionError(
     std::vector<TrackElement> track_els_to_delete;
 
     for (const auto& track_el : point3D.Track().Elements()) {
+      /// 每一个ｔｒａｃｋ，对应于observation; 一个三维点，对应若干个ｔｒａｃｋ；
       const class Image& image = Image(track_el.image_id);
       const class Camera& camera = Camera(image.CameraId());
       const Point2D& point2D = image.Point2D(track_el.point2D_idx);
+      ///　计算重投影误差。
       const double squared_reproj_error = CalculateSquaredReprojectionError(
           point2D.XY(), point3D.XYZ(), image.Qvec(), image.Tvec(), camera);
       if (squared_reproj_error > max_squared_reproj_error) {
@@ -1366,10 +1373,12 @@ size_t Reconstruction::FilterPoints3DWithLargeReprojectionError(
     }
 
     if (track_els_to_delete.size() >= point3D.Track().Length() - 1) {
+      /// 要删除的ｔｒａｃｋ已经大于等于所
       num_filtered += point3D.Track().Length();
       DeletePoint3D(point3D_id);
     } else {
       num_filtered += track_els_to_delete.size();
+      /// 对于每一个要删除的track,遍历删除即可。
       for (const auto& track_el : track_els_to_delete) {
         DeleteObservation(track_el.image_id, track_el.point2D_idx);
       }
@@ -1966,6 +1975,9 @@ void Reconstruction::SetObservationAsTriangulated(
 void Reconstruction::ResetTriObservations(const image_t image_id,
                                           const point2D_t point2D_idx,
                                           const bool is_deleted_point3D) {
+  ///@param image_id：要删除的图像ｉｄ
+  ///@param point2D_idx: 要删除的点id;
+  ///@param is_deleted_point3D: 是否删除对应的三维点；
   if (correspondence_graph_ == nullptr) {
     return;
   }
