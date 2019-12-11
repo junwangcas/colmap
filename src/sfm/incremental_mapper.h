@@ -303,6 +303,7 @@ class IncrementalMapper {
   // an upper bound to the number of trials to register an image.
   std::unordered_map<image_t, size_t> num_reg_trials_;
 
+  /// 该功能是在已有模型的基础上，继续重建
   // Images that were registered before beginning the reconstruction.
   // This image list will be non-empty, if the reconstruction is continued from
   // an existing reconstruction.
