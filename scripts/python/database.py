@@ -229,6 +229,7 @@ def example_usage():
     import os
     import argparse
 
+    #/// 样例使用，数据库的地址
     parser = argparse.ArgumentParser()
     parser.add_argument("--database_path", default="database.db")
     args = parser.parse_args()
@@ -238,7 +239,7 @@ def example_usage():
         return
 
     # Open the database.
-
+    #/// 首先要连接olmap的数据库
     db = COLMAPDatabase.connect(args.database_path)
 
     # For convenience, try creating all the tables upfront.
@@ -246,17 +247,19 @@ def example_usage():
     db.create_tables()
 
     # Create dummy cameras.
-
+    #///@todo model 是指的什么，params指的什么？
+    构造两组数据，指定 宽 高 参数
     model1, width1, height1, params1 = \
         0, 1024, 768, np.array((1024., 512., 384.))
     model2, width2, height2, params2 = \
         2, 1024, 768, np.array((1024., 512., 384., 0.1))
 
+    # 将相机模型首先增加到数据库中。
     camera_id1 = db.add_camera(model1, width1, height1, params1)
     camera_id2 = db.add_camera(model2, width2, height2, params2)
 
     # Create dummy images.
-
+    # 利用相机模型生成若干的图像。
     image_id1 = db.add_image("image1.png", camera_id1)
     image_id2 = db.add_image("image2.png", camera_id1)
     image_id3 = db.add_image("image3.png", camera_id2)
@@ -268,20 +271,20 @@ def example_usage():
     #      - 2D keypoints: (x, y)
     #      - 4D keypoints: (x, y, theta, scale)
     #      - 6D affine keypoints: (x, y, a_11, a_12, a_21, a_22)
-
+    # 生成若干个关键点；
     num_keypoints = 1000
     keypoints1 = np.random.rand(num_keypoints, 2) * (width1, height1)
     keypoints2 = np.random.rand(num_keypoints, 2) * (width1, height1)
     keypoints3 = np.random.rand(num_keypoints, 2) * (width2, height2)
     keypoints4 = np.random.rand(num_keypoints, 2) * (width2, height2)
-
+    # 将这些关键点增加到图像上去；
     db.add_keypoints(image_id1, keypoints1)
     db.add_keypoints(image_id2, keypoints2)
     db.add_keypoints(image_id3, keypoints3)
     db.add_keypoints(image_id4, keypoints4)
 
     # Create dummy matches.
-
+    # 增加关键点之间的匹配关系；
     M = 50
     matches12 = np.random.randint(num_keypoints, size=(M, 2))
     matches23 = np.random.randint(num_keypoints, size=(M, 2))
@@ -292,7 +295,7 @@ def example_usage():
     db.add_matches(image_id3, image_id4, matches34)
 
     # Commit the data to the file.
-
+    # 将他们之间的关系写入；
     db.commit()
 
     # Read and check cameras.
@@ -343,7 +346,7 @@ def example_usage():
     # Clean up.
 
     db.close()
-
+    # 这里是将刚才生成的数据删除。
     if os.path.exists(args.database_path):
         os.remove(args.database_path)
 
