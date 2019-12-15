@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 # All rights reserved.
 #
@@ -31,10 +32,12 @@
 
 # This script is based on an original implementation by True Price.
 
+
 import sys
 import sqlite3
 import numpy as np
-
+import os
+import argparse
 
 IS_PYTHON3 = sys.version_info[0] >= 3
 
@@ -224,12 +227,165 @@ class COLMAPDatabase(sqlite3.Connection):
             (pair_id,) + matches.shape + (array_to_blob(matches), config,
              array_to_blob(F), array_to_blob(E), array_to_blob(H)))
 
+class simulation_data_reading():
+    dir_prefix = "/media/nvidia/TWOTB/vins/vio_data_simulation/bin/"
+    file_all_points = dir_prefix + "all_points.txt"
+    file_camera_pose = dir_prefix + "cam_pose.txt"
+    dir_keyframe_obs_prefix = dir_prefix + "keyframe/" + "all_points_"
+    file_db = "./data/database.db"
+    qw_index = 1
+    size_cam = 0
+    _all_points = []
+    _cam_poses = []
+    _all_observations = []
+    ### camera setings;
+    _image_height = 480
+    _image_width = 640
+
+    def run_read_data(self):
+        self.readpoints()
+        self.read_cam_poses()
+        self.read_observation_one()
+
+    def readpoints(self):
+        with open(self.file_all_points, "r") as file_handle:
+            lines = file_handle.readlines()
+            for line in lines:
+                line_split = line.split()
+                line_float = map(float, line_split)
+                point = [line_float[0], line_float[1], line_float[2]]
+                self._all_points.append(point)
+            print("read %d points: " % len(self._all_points))
+
+    def read_observation_one(self):
+        count_cam = 0
+        while count_cam < self.size_cam:
+            file_name = self.dir_keyframe_obs_prefix + str(count_cam) + ".txt"
+            with open(file_name, "r") as file_handle:
+                observation = []
+                lines = file_handle.readlines()
+                for line in lines:
+                    line_split = line.split()
+                    line_float = map(float, line_split)
+                    point_obs = [line_float[4], line_float[5]]
+                    observation.append(point_obs)
+                self._all_observations.append(observation)
+            count_cam += 1
+        print("read %d observations" % len(self._all_observations))
+
+    def read_cam_poses(self):
+        with open(self.file_camera_pose, "r") as file_handle:
+            lines = file_handle.readlines()
+            for line in lines:
+                line_split = line.split()
+                line_float = map(float, line_split)
+                pose = [line_float[self.qw_index], line_float[self.qw_index + 1], line_float[self.qw_index + 2],
+                        line_float[self.qw_index + 3], line_float[self.qw_index + 4], line_float[self.qw_index + 5],
+                        line_float[self.qw_index + 6]]
+                self._cam_poses.append(pose)
+            self.size_cam = len(self._cam_poses)
+            print("read %d poses: " % len(self._cam_poses))
+
+    def write_to_db(self):
+        if os.path.exists(self.file_db):
+            print("db exist and will remove it")
+            os.remove(self.file_db)
+        # Open the database.
+        # /// 首先要连接olmap的数据库
+        db = COLMAPDatabase.connect(self.file_db)
+
+        # For convenience, try creating all the tables upfront.
+
+        db.create_tables()
+
+        # Create dummy cameras.
+        # ///@todo model 是指的什么，params指的什么？
+        # 构造两组数据，指定 宽 高 参数
+        model1, width1, height1, params1 = \
+            0, self._image_width, self._image_height, np.array((self._image_width, self._image_height, 384.))
+
+        # 将相机模型首先增加到数据库中。
+        camera_id1 = db.add_camera(model1, width1, height1, params1)
+
+        # 利用相机模型生成若干的图像。
+        image_ids = []
+        count = 0
+        while count < self.size_cam:
+            image_name = "image%d.png" % count
+            image_id = db.add_image(image_name, camera_id1)
+            image_ids.append(image_id)
+            count += 1
+        # Create dummy keypoints.
+        #
+        # Note that COLMAP supports:
+        #      - 2D keypoints: (x, y)
+        #      - 4D keypoints: (x, y, theta, scale)
+        #      - 6D affine keypoints: (x, y, a_11, a_12, a_21, a_22)
+        # 关键点增加到图像上去；
+        count = 0
+        while count < self.size_cam:
+            image_id = image_ids[count]
+            keypoint = self._all_observations[count]
+            keypoint = np.asarray(keypoint)
+            db.add_keypoints(image_id, keypoint)
+            count += 1
+
+        matches_cam_keypt = []
+        # 增加关键点之间的匹配关系；
+        for i in range(self.size_cam - 1):
+            for j in range(i + 1, self.size_cam):
+                size_obs = len(self._all_observations[i])
+                matches = np.arange(size_obs*2).reshape([size_obs, 2])
+                increament_num = np.arange(size_obs)
+                matches[:,0] = increament_num
+                matches[:,1] = increament_num
+                image_id1 = image_ids[i]
+                image_id2 = image_ids[j]
+                db.add_matches(image_id1, image_id2, matches)
+                matches_cam_keypt.append(matches)
+
+        # Commit the data to the file.
+        # 将他们之间的关系写入；
+        db.commit()
+
+        # Read and check cameras.
+
+        rows = db.execute("SELECT * FROM cameras")
+
+        camera_id, model, width, height, params, prior = next(rows)
+        params = blob_to_array(params, np.float64)
+        assert camera_id == camera_id1
+        assert model == model1 and width == width1 and height == height1
+        assert np.allclose(params, params1)
+
+        # Read and check keypoints.
+
+        keypoints = dict(
+            (image_id, blob_to_array(data, np.float32, (-1, 2)))
+            for image_id, data in db.execute(
+                "SELECT image_id, data FROM keypoints"))
+
+        assert np.allclose(keypoints[image_ids[0]], self._all_observations[0])
+
+        # Read and check matches.
+
+        pair_ids = [image_ids_to_pair_id(*pair) for pair in
+                    ((image_ids[0], image_ids[1]),
+                     (image_ids[0], image_ids[2]))]
+
+        matches = dict(
+            (pair_id_to_image_ids(pair_id),
+             blob_to_array(data, np.uint32, (-1, 2)))
+            for pair_id, data in db.execute("SELECT pair_id, data FROM matches")
+        )
+
+        assert np.all(matches[(image_ids[0], image_ids[1])] == matches_cam_keypt[0])
+        # Clean up.
+        db.close()
+
 
 def example_usage():
-    import os
-    import argparse
-
-    #/// 样例使用，数据库的地址
+    ### /// 样例使用，数据库的地址
     parser = argparse.ArgumentParser()
     parser.add_argument("--database_path", default="database.db")
     args = parser.parse_args()
@@ -248,7 +404,7 @@ def example_usage():
 
     # Create dummy cameras.
     #///@todo model 是指的什么，params指的什么？
-    构造两组数据，指定 宽 高 参数
+    #构造两组数据，指定 宽 高 参数
     model1, width1, height1, params1 = \
         0, 1024, 768, np.array((1024., 512., 384.))
     model2, width2, height2, params2 = \
@@ -350,6 +506,16 @@ def example_usage():
     if os.path.exists(args.database_path):
         os.remove(args.database_path)
 
+def simulation_to_db():
+    sim_reading = simulation_data_reading()
+    sim_reading.run_read_data()
+    sim_reading.write_to_db()
 
 if __name__ == "__main__":
-    example_usage()
+    if_use_simulation = True
+    if if_use_simulation:
+        # 读取simulation的结果，将其写到
+        simulation_to_db()
+    else:
+        # 这个示例为官方自带的示例；
+        example_usage()

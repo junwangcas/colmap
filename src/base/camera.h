@@ -46,10 +46,12 @@ class Camera {
  public:
   Camera();
 
+  /// 相机的ID;
   // Access the unique identifier of the camera.
   inline camera_t CameraId() const;
   inline void SetCameraId(const camera_t camera_id);
 
+  /// 相机的模型；
   // Access the camera model.
   inline int ModelId() const;
   std::string ModelName() const;
