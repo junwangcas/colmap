@@ -342,6 +342,7 @@ class simulation_data_reading():
                 image_id1 = image_ids[i]
                 image_id2 = image_ids[j]
                 db.add_matches(image_id1, image_id2, matches)
+                db.add_two_view_geometry(image_id1, image_id2, matches)
                 matches_cam_keypt.append(matches)
 
         # Commit the data to the file.
@@ -449,6 +450,12 @@ def example_usage():
     db.add_matches(image_id1, image_id2, matches12)
     db.add_matches(image_id2, image_id3, matches23)
     db.add_matches(image_id3, image_id4, matches34)
+    db.add_two_view_geometry(image_id1, image_id2, matches12)
+    db.add_two_view_geometry(image_id2, image_id3, matches23)
+    db.add_two_view_geometry(image_id3, image_id4, matches34)
+
+
+
 
     # Commit the data to the file.
     # 将他们之间的关系写入；
@@ -503,8 +510,8 @@ def example_usage():
 
     db.close()
     # 这里是将刚才生成的数据删除。
-    if os.path.exists(args.database_path):
-        os.remove(args.database_path)
+    # if os.path.exists(args.database_path):
+    #     os.remove(args.database_path)
 
 def simulation_to_db():
     sim_reading = simulation_data_reading()
