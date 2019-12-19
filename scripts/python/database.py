@@ -264,11 +264,17 @@ class simulation_data_reading():
             with open(file_name, "r") as file_handle:
                 observation = []
                 lines = file_handle.readlines()
+                line_count = 0
                 for line in lines:
                     line_split = line.split()
                     line_float = map(float, line_split)
                     point_obs = [line_float[4], line_float[5]]
                     observation.append(point_obs)
+                    point = self._all_points[line_count]
+                    assert line_float[0] == point[0]
+                    assert line_float[1] == point[1]
+                    assert line_float[2] == point[2]
+                    line_count += 1
                 self._all_observations.append(observation)
             count_cam += 1
         print("read %d observations" % len(self._all_observations))
