@@ -232,7 +232,8 @@ class simulation_data_reading():
     file_all_points = dir_prefix + "all_points.txt"
     file_camera_pose = dir_prefix + "cam_pose.txt"
     dir_keyframe_obs_prefix = dir_prefix + "keyframe/" + "all_points_"
-    file_db = "./data/database.db"
+    #file_db = "./data/database.db"
+    file_db = "/media/nvidia/TWOTB/work_code/colmap/cmake-build-debug/src/exe/database.db"
     qw_index = 1
     size_cam = 0
     _all_points = []
@@ -241,6 +242,8 @@ class simulation_data_reading():
     ### camera setings;
     _image_height = 480
     _image_width = 640
+    if_reduce_cam_size = True
+    _size_cam_control = 25
 
     def run_read_data(self):
         self.readpoints()
@@ -291,6 +294,8 @@ class simulation_data_reading():
                 self._cam_poses.append(pose)
             self.size_cam = len(self._cam_poses)
             print("read %d poses: " % len(self._cam_poses))
+            if (self.if_reduce_cam_size):
+                self.size_cam = self._size_cam_control
 
     def write_to_db(self):
         if os.path.exists(self.file_db):
