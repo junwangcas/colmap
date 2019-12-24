@@ -50,6 +50,10 @@ add_subdirectory(tools)
 add_subdirectory(ui)
 add_subdirectory(util)
 
+#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../config/param.cfg ${CMAKE_BINARY_DIR}/param.cfg COPYONLY)
+configure_file(util/param.cfg ${CMAKE_BINARY_DIR}/src/exe/param.cfg COPYONLY)
+
+
 COLMAP_ADD_STATIC_LIBRARY(colmap ${COLMAP_SOURCES})
 
 if(CUDA_ENABLED)
