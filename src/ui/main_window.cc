@@ -32,6 +32,9 @@
 #include "ui/main_window.h"
 
 #include "util/version.h"
+#include "util/app_preference.hpp"
+#include "util/app_config.hpp"
+
 
 namespace colmap {
 
@@ -52,6 +55,10 @@ MainWindow::MainWindow(const OptionManager& options)
   ShowLog();
 
   options_.AddAllOptions();
+
+  /// reading options;
+  AppConfig config("param.cfg");
+  appPref.set_int_data("if_debug_simulation", config.get_int("if_debug_simulation"));
 }
 
 void MainWindow::ImportReconstruction(const std::string& path) {
@@ -574,7 +581,7 @@ bool MainWindow::ProjectOpen() {
     return false;
   }
 
-  const std::string project_path =
+  std::string project_path =
       QFileDialog::getOpenFileName(this, tr("Select project file"), "",
                                    tr("Project file (*.ini)"))
           .toUtf8()
@@ -922,6 +929,13 @@ void MainWindow::AutomaticReconstruction() {
 }
 
 void MainWindow::ReconstructionStart() {
+//  if (appPref.get_int_data("if_debug_simulation") == 1) {
+//    ReconstructionOverwrite();
+//    project_widget_->Reset();
+//    project_widget_->SetImagePath("/media/nvidia/TWOTB/work_code/colmap/cmake-build-debug/src/exe");
+//    project_widget_->SetDatabasePath("/media/nvidia/TWOTB/work_code/colmap/cmake-build-debug/src/exe/database.db");
+//  }
+
   if (!mapper_controller_->IsStarted() && !options_.Check()) {
     ShowInvalidProjectError();
     return;

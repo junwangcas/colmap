@@ -309,8 +309,6 @@ IncrementalMapperController::IncrementalMapperController(
   RegisterCallback(INITIAL_IMAGE_PAIR_REG_CALLBACK);
   RegisterCallback(NEXT_IMAGE_REG_CALLBACK);
   RegisterCallback(LAST_IMAGE_REG_CALLBACK);
-    AppConfig config("param.cfg");
-    appPref.set_string_data("ros_bag_name", config.get("ros_bag_name"));
 }
 
 void IncrementalMapperController::Run() {
