@@ -88,6 +88,7 @@ size_t IncrementalTriangulator::TriangulateImage(const Options& options,
   std::vector<CorrData> corrs_data;
 
   // Try to triangulate all image observations.
+    ///　逐个匹配对检查
   for (point2D_t point2D_idx = 0; point2D_idx < image.NumPoints2D();
        ++point2D_idx) {
     const size_t num_triangulated =
@@ -105,6 +106,7 @@ size_t IncrementalTriangulator::TriangulateImage(const Options& options,
       corrs_data.push_back(ref_corr_data);
       num_tris += Create(options, corrs_data);
     } else {
+        /// 如果找到以前的点，那么就不需要增加新点了，就和已有的三维点关联。
       // Continue correspondences to existing 3D points.
       num_tris += Continue(options, ref_corr_data, corrs_data);
       // Create points from correspondences that are not continued.
@@ -421,9 +423,45 @@ size_t IncrementalTriangulator::Find(const Options& options,
                                      const point2D_t point2D_idx,
                                      const size_t transitivity,
                                      std::vector<CorrData>* corrs_data) {
+  ///　@todo 这里发现一个bug，就是corrs_data中已经整理好的相关关系，到这里之后弄没了。典型的数据就是图像4上的第23个点的三维点的ｉｄ在corrs_data中是正确的，在reconstruction中是错误的
+  /// @todo 为啥这里要把所有的数据删除呢？这里把图片遍历检查一下; 这里在check新数据的时候，就出现了问题
   const std::vector<CorrespondenceGraph::Correspondence>& corrs =
       correspondence_graph_->FindTransitiveCorrespondences(
           image_id, point2D_idx, transitivity);
+
+  ///
+  /// for debug;
+  for (auto cor: *corrs_data) {
+    int image_id = cor.image_id;
+    int point_id_cor = cor.point2D_idx;
+    int point_3did_cor = cor.point2D->Point3DId();
+
+    const Image &corr_image = reconstruction_->Image(image_id);
+    int point_3did_recon = corr_image.Point2D(point_id_cor).Point3DId();
+
+    if (point_3did_cor != point_3did_recon) {
+      std::cout << "some thing wrong\n";
+    }
+  }
+  for (auto cor : *corrs_data) {
+    //if (std::fabs(cor.point2D->X() +  269.451) < 0.001) {
+      std::cout << "image id " << cor.image_id << " point id " << cor.point2D->Point3DId() << "\n";
+     // std::cout << "print\n";
+    //}
+    if (cor.image_id == 4 && cor.point2D_idx == 23) {
+      std::cout << "print\n";
+    }
+  }
+  if (corrs_data->size() > 5) {
+    for (const CorrespondenceGraph::Correspondence corr : corrs) {
+      const Image &corr_image = reconstruction_->Image(corr.image_id);
+      CorrData corr_data;
+      corr_data.point2D = &corr_image.Point2D(corr.point2D_idx);
+      if (corr_data.point2D->Point3DId() > 100 && corr.image_id == 4) {
+        std::cout << "strange " << corr_data.point2D->Point3DId() << "\n";
+      }
+    }
+  }
 
   corrs_data->clear();
   corrs_data->reserve(corrs.size());
@@ -434,6 +472,10 @@ size_t IncrementalTriangulator::Find(const Options& options,
     const Image& corr_image = reconstruction_->Image(corr.image_id);
     if (!corr_image.IsRegistered()) {
       continue;
+    }
+
+    if (corr_image.Point2D(corr.point2D_idx).Point3DId() > 100) {
+      std::cout << "strange\n";
     }
 
     const Camera& corr_camera = reconstruction_->Camera(corr_image.CameraId());
@@ -455,6 +497,15 @@ size_t IncrementalTriangulator::Find(const Options& options,
     }
   }
 
+  for (auto cor : *corrs_data) {
+    if (std::fabs(cor.point2D->X() +  269.451) < 0.001) {
+      std::cout << "print\n";
+    }
+    if (cor.image_id == 4 && cor.point2D_idx == 23) {
+      std::cout << "print\n";
+    }
+  }
+
   return num_triangulated;
 }
 
@@ -464,6 +515,10 @@ size_t IncrementalTriangulator::Create(
   std::vector<CorrData> create_corrs_data;
   create_corrs_data.reserve(corrs_data.size());
   for (const CorrData& corr_data : corrs_data) {
+      /// debug
+      if (corr_data.point2D_idx == 23 && !corr_data.point2D->HasPoint3D()) {
+          std::cout << "strange points\n";
+      }
     if (!corr_data.point2D->HasPoint3D()) {
       create_corrs_data.push_back(corr_data);
     }
@@ -545,6 +600,9 @@ size_t IncrementalTriangulator::Create(
 size_t IncrementalTriangulator::Continue(
     const Options& options, const CorrData& ref_corr_data,
     const std::vector<CorrData>& corrs_data) {
+  if (ref_corr_data.image_id == 4 && ref_corr_data.point2D_idx == 23) {
+    std::cout << "strange points\n";
+  }
   // No need to continue, if the reference observation is triangulated.
   if (ref_corr_data.point2D->HasPoint3D()) {
     return 0;
