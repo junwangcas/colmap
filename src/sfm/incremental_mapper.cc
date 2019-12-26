@@ -319,13 +319,16 @@ bool IncrementalMapper::RegisterInitialImagePair(const Options& options,
 
   const double min_tri_angle_rad = DegToRad(options.init_min_tri_angle);
 
-  // Add 3D point tracks.
+  // Add 3D point tracks;
+  /// 注册初始图像对；
   Track track;
   track.Reserve(2);
   track.AddElement(TrackElement());
   track.AddElement(TrackElement());
+  /// 设置该track的图像id，第一幅图像与第二幅图像；
   track.Element(0).image_id = image_id1;
   track.Element(1).image_id = image_id2;
+  /// 便利所有的匹配点对；
   for (const auto& corr : corrs) {
     const Eigen::Vector2d point1_N =
         camera1.ImageToWorld(image1.Point2D(corr.point2D_idx1).XY());
