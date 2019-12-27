@@ -242,7 +242,7 @@ class simulation_data_reading():
     ### camera setings;
     _image_height = 480
     _image_width = 640
-    if_reduce_cam_size = True
+    if_reduce_cam_size = False
     _size_cam_control = 25
 
     def run_read_data(self):

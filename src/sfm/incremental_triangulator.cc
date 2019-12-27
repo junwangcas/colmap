@@ -87,10 +87,20 @@ size_t IncrementalTriangulator::TriangulateImage(const Options& options,
   // Container for correspondences from reference observation to other images.
   std::vector<CorrData> corrs_data;
 
+  /// @todo 这里有个bug，当image_id = 6; point2D_idx=23时，会发生corrs_data里的不一致现象
+  /// 主要原因是reconstruction结构中，point2D_idx=23的点对应的三维点不对。
+
+  if (image_id == 6) {
+      std::cout << "strange\n";
+  }
   // Try to triangulate all image observations.
     ///　逐个匹配对检查
   for (point2D_t point2D_idx = 0; point2D_idx < image.NumPoints2D();
        ++point2D_idx) {
+      if (point2D_idx == 23) {
+          std::cout << "strange\n";
+      }
+      /// 逐个点进行三角化
     const size_t num_triangulated =
         Find(options, image_id, point2D_idx,
              static_cast<size_t>(options.max_transitivity), &corrs_data);
@@ -431,13 +441,21 @@ size_t IncrementalTriangulator::Find(const Options& options,
 
   ///
   /// for debug;
+  std::vector<CorrData> corrs_data_back;
   for (auto cor: *corrs_data) {
+      corrs_data_back.push_back(cor);
+  }
+  for (auto cor: corrs_data_back) {
     int image_id = cor.image_id;
     int point_id_cor = cor.point2D_idx;
     int point_3did_cor = cor.point2D->Point3DId();
 
     const Image &corr_image = reconstruction_->Image(image_id);
     int point_3did_recon = corr_image.Point2D(point_id_cor).Point3DId();
+
+    if (point_3did_cor > 50 || point_3did_recon > 50 || point_3did_cor < 0) {
+        std::cout << "some thing wrong\n";
+    }
 
     if (point_3did_cor != point_3did_recon) {
       std::cout << "some thing wrong\n";
