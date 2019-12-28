@@ -87,19 +87,10 @@ size_t IncrementalTriangulator::TriangulateImage(const Options& options,
   // Container for correspondences from reference observation to other images.
   std::vector<CorrData> corrs_data;
 
-  /// @todo 这里有个bug，当image_id = 6; point2D_idx=23时，会发生corrs_data里的不一致现象
-  /// 主要原因是reconstruction结构中，point2D_idx=23的点对应的三维点不对。
-
-  if (image_id == 6) {
-      std::cout << "strange\n";
-  }
   // Try to triangulate all image observations.
     ///　逐个匹配对检查
   for (point2D_t point2D_idx = 0; point2D_idx < image.NumPoints2D();
        ++point2D_idx) {
-      if (point2D_idx == 23) {
-          std::cout << "strange\n";
-      }
       /// 逐个点进行三角化
     const size_t num_triangulated =
         Find(options, image_id, point2D_idx,
@@ -439,48 +430,6 @@ size_t IncrementalTriangulator::Find(const Options& options,
       correspondence_graph_->FindTransitiveCorrespondences(
           image_id, point2D_idx, transitivity);
 
-  ///
-  /// for debug;
-  std::vector<CorrData> corrs_data_back;
-  for (auto cor: *corrs_data) {
-      corrs_data_back.push_back(cor);
-  }
-  for (auto cor: corrs_data_back) {
-    int image_id = cor.image_id;
-    int point_id_cor = cor.point2D_idx;
-    int point_3did_cor = cor.point2D->Point3DId();
-
-    const Image &corr_image = reconstruction_->Image(image_id);
-    int point_3did_recon = corr_image.Point2D(point_id_cor).Point3DId();
-
-    if (point_3did_cor > 50 || point_3did_recon > 50 || point_3did_cor < 0) {
-        std::cout << "some thing wrong\n";
-    }
-
-    if (point_3did_cor != point_3did_recon) {
-      std::cout << "some thing wrong\n";
-    }
-  }
-  for (auto cor : *corrs_data) {
-    //if (std::fabs(cor.point2D->X() +  269.451) < 0.001) {
-      std::cout << "image id " << cor.image_id << " point id " << cor.point2D->Point3DId() << "\n";
-     // std::cout << "print\n";
-    //}
-    if (cor.image_id == 4 && cor.point2D_idx == 23) {
-      std::cout << "print\n";
-    }
-  }
-  if (corrs_data->size() > 5) {
-    for (const CorrespondenceGraph::Correspondence corr : corrs) {
-      const Image &corr_image = reconstruction_->Image(corr.image_id);
-      CorrData corr_data;
-      corr_data.point2D = &corr_image.Point2D(corr.point2D_idx);
-      if (corr_data.point2D->Point3DId() > 100 && corr.image_id == 4) {
-        std::cout << "strange " << corr_data.point2D->Point3DId() << "\n";
-      }
-    }
-  }
-
   corrs_data->clear();
   corrs_data->reserve(corrs.size());
 
@@ -490,10 +439,6 @@ size_t IncrementalTriangulator::Find(const Options& options,
     const Image& corr_image = reconstruction_->Image(corr.image_id);
     if (!corr_image.IsRegistered()) {
       continue;
-    }
-
-    if (corr_image.Point2D(corr.point2D_idx).Point3DId() > 100) {
-      std::cout << "strange\n";
     }
 
     const Camera& corr_camera = reconstruction_->Camera(corr_image.CameraId());
@@ -515,15 +460,6 @@ size_t IncrementalTriangulator::Find(const Options& options,
     }
   }
 
-  for (auto cor : *corrs_data) {
-    if (std::fabs(cor.point2D->X() +  269.451) < 0.001) {
-      std::cout << "print\n";
-    }
-    if (cor.image_id == 4 && cor.point2D_idx == 23) {
-      std::cout << "print\n";
-    }
-  }
-
   return num_triangulated;
 }
 
@@ -533,10 +469,6 @@ size_t IncrementalTriangulator::Create(
   std::vector<CorrData> create_corrs_data;
   create_corrs_data.reserve(corrs_data.size());
   for (const CorrData& corr_data : corrs_data) {
-      /// debug
-      if (corr_data.point2D_idx == 23 && !corr_data.point2D->HasPoint3D()) {
-          std::cout << "strange points\n";
-      }
     if (!corr_data.point2D->HasPoint3D()) {
       create_corrs_data.push_back(corr_data);
     }
@@ -618,9 +550,6 @@ size_t IncrementalTriangulator::Create(
 size_t IncrementalTriangulator::Continue(
     const Options& options, const CorrData& ref_corr_data,
     const std::vector<CorrData>& corrs_data) {
-  if (ref_corr_data.image_id == 4 && ref_corr_data.point2D_idx == 23) {
-    std::cout << "strange points\n";
-  }
   // No need to continue, if the reference observation is triangulated.
   if (ref_corr_data.point2D->HasPoint3D()) {
     return 0;

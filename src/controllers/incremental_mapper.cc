@@ -78,9 +78,6 @@ void AdjustGlobalBundle(const IncrementalMapperOptions& options,
 void IterativeLocalRefinement(const IncrementalMapperOptions& options,
                               const image_t image_id,
                               IncrementalMapper* mapper) {
-    if (image_id == 4) {
-        std::cout << "strange\n";
-    }
   auto ba_options = options.LocalBundleAdjustment();
   for (int i = 0; i < options.ba_local_max_refinements; ++i) {
     const auto report = mapper->AdjustLocalBundle(
@@ -636,6 +633,7 @@ void IncrementalMapperController::Reconstruct(
       break;
     }
   }
+  write_log_reconstruction();
 }
 
 }  // namespace colmap
