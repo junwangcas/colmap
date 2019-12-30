@@ -10,6 +10,7 @@ from read_model import ReadModel
 
 
 _if_show_3d = True
+_if_cam_pose = False
 
 def visulize(cameras, images, points3D):
     print "visulize in 2D: "
@@ -33,6 +34,7 @@ def visulize(cameras, images, points3D):
     ax.legend()
     ax.set_xlabel('x')
     ax.set_ylabel('y')
+    ax.set_aspect('equal')
     plt.title('points in 2D')
 
 
@@ -45,6 +47,34 @@ def visulize(cameras, images, points3D):
         ax.set_zlabel('z')
         plt.title('points in 3D')
     plt.show()
+
+def get_residuals(cameras, images, points3D):
+    print "optimization residuals: "
+    read_model = ReadModel()
+    point = points3D[1]
+    point2d_id = point.point2D_idxs[0]
+    image_id = point.image_ids[0]
+    image = images[image_id]
+    pixel = image.xys[point2d_id]
+
+    p_G = point.xyz
+    R = read_model.qvec2rotmat(image.qvec)
+    if _if_cam_pose:
+        # global to local:  p_G = R*p_L + T;
+        p_G_t = (p_G - image.tvec)
+        p_L = np.dot(R.transpose(), np.reshape(p_G_t,[3,1]))
+    else:
+        #
+        p_L = np.dot(p_G, R) + image.tvec
+    # local to pixel;
+    f = cameras[1].params[0]
+    cx = cameras[1].params[1]
+    cy = cameras[1].params[2]
+    x_pi = f * p_L[0]/p_L[2] + cx
+    y_pi = f * p_L[1]/p_L[2] + cy
+    x_resi = x_pi - pixel[0]
+    y_resi = y_pi - pixel[1]
+
 
 def main():
     path = ''
@@ -63,7 +93,8 @@ def main():
     print("num_images:", len(images))
     print("num_points3D:", len(points3D))
 
-    visulize(cameras, images, points3D)
+    #visulize(cameras, images, points3D)
+    get_residuals(cameras, images, points3D)
 
 
 if __name__ == "__main__":

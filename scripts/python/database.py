@@ -240,9 +240,12 @@ class simulation_data_reading():
     _cam_poses = []
     _all_observations = []
     ### camera setings;
-    _image_height = 480
-    _image_width = 640
-    if_reduce_cam_size = False
+    focal_len = 460
+    c_x = 255
+    c_y = 255
+    _image_height = 510
+    _image_width = 510
+    if_reduce_cam_size = True
     _size_cam_control = 25
 
     def run_read_data(self):
@@ -313,7 +316,7 @@ class simulation_data_reading():
         # ///@todo model 是指的什么，params指的什么？
         # 构造两组数据，指定 宽 高 参数
         model1, width1, height1, params1 = \
-            0, self._image_width, self._image_height, np.array((self._image_width, self._image_height, 384.))
+            0, self._image_width, self._image_height, np.array((self.focal_len, self.c_x, self.c_y))
 
         # 将相机模型首先增加到数据库中。
         camera_id1 = db.add_camera(model1, width1, height1, params1)
