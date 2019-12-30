@@ -1735,6 +1735,7 @@ void Reconstruction::WriteCamerasText(const std::string& path) const {
   // Ensure that we don't loose any precision by storing in text.
   file.precision(17);
 
+  /// 每一行表示一个相机：ID, 模型名称，宽度，高度，参数（）
   file << "# Camera list with one line of data per camera:" << std::endl;
   file << "#   CAMERA_ID, MODEL, WIDTH, HEIGHT, PARAMS[]" << std::endl;
   file << "# Number of cameras: " << cameras_.size() << std::endl;

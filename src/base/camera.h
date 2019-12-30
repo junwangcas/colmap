@@ -156,6 +156,7 @@ class Camera {
   size_t width_;
   size_t height_;
 
+  /// 焦距（一般来说x,y一样），主像点(x, y,　一般是宽高的一半)，额外参数。
   // The focal length, principal point, and extra parameters. If the camera
   // model is not specified, this vector is empty.
   std::vector<double> params_;

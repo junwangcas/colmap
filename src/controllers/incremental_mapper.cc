@@ -633,7 +633,7 @@ void IncrementalMapperController::Reconstruct(
       break;
     }
   }
-  write_log_reconstruction();
+ // write_log_reconstruction();
 }
 
 }  // namespace colmap
